@@ -14,31 +14,33 @@ function gameMaster() {
 			playerTwo = player;
 			console.log(`Player two is ${player.name}`);
 		}
-		currentPlayer = playerOne
+		currentPlayer = playerOne;
 	};
 	const getCurrentPlayer = () => currentPlayer;
 	const roundOver = function () {
 		roundNum++;
-		currentPlayer !== playerOne ? playerOne : playerTwo;
+		currentPlayer = currentPlayer === playerOne ? playerTwo : playerOne;
+		console.log(`Current player is ${currentPlayer.name}`);
+		winCondition(board.board, currentPlayer)
 	};
 
 	return { setPlayer, getCurrentPlayer, roundOver };
 }
 
 function makeBoard() {
-	const board = [
+	const boardGrid = [
 		["-", "-", "-"],
 		["-", "-", "-"],
 		["-", "-", "-"],
 	];
 
-	for (let [index, element] of board.entries()) {
+	for (let [index, element] of boardGrid.entries()) {
 		const boardContainer = document.getElementById("board");
 		let row = document.createElement("div");
 		row.className = "row";
 		boardContainer.appendChild(row);
 		console.log(index);
-		for (let [innerIndex, innerElement] of board[index].entries()) {
+		for (let [innerIndex, innerElement] of boardGrid[index].entries()) {
 			let square = document.createElement("div");
 			square.id = `tile_${index}${innerIndex}`;
 			square.className = "tile";
@@ -46,11 +48,21 @@ function makeBoard() {
 			row.appendChild(square);
 			console.log(innerIndex);
 
-			square.addEventListener("click", (e) => {});
+			square.addEventListener("click", function () {
+				let piece = gameManager.getCurrentPlayer().piece
+				boardGrid[index][innerIndex] = piece;
+				square.textContent = piece;
+				console.log(boardGrid);
+				gameManager.roundOver();
+				winCondition(board.board, gameManager.getCurrentPlayer())
+			});
 		}
 	}
+	return { boardGrid };
+}
 
-	return { board };
+function winCondition(board, player) {
+	
 }
 
 function makePlayer(name, piece) {
@@ -67,17 +79,21 @@ function makePlayer(name, piece) {
 	else return { name, piece, placePiece };
 }
 
-const gameManager = gameMaster();
+// function initialise() 
+	let gameBoard = makeBoard();
+	console.log(gameBoard);
 
-let gameBoard = makeBoard();
-console.log(gameBoard);
+	const gameManager = gameMaster();
+	const joe = makePlayer("joe", "X");
+	const maggy = makePlayer("maggy", "O");
+	gameManager.setPlayer(joe);
+	gameManager.setPlayer(maggy);
 
-const joe = makePlayer("joe", "X");
-const maggy = makePlayer("maggy", "O");
+	console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
 
-gameManager.setPlayer(joe);
-gameManager.setPlayer(maggy);
+	console.log({ joe });
 
-console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
+	console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
 
-console.log({ joe });
+//
+// initialise();

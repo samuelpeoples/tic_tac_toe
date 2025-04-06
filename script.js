@@ -2,67 +2,119 @@ function gameMaster() {
 	let playerOne;
 	let playerTwo;
 	let currentPlayer = playerOne;
+	let roundNum = 1;
+	let gameWon = false;
+	const log = document.getElementById("log");
+	const roundTracker = document.getElementById("roundTracker");
 
-	let roundNum = 0;
 	const setPlayer = function (player) {
 		if (playerOne !== undefined && playerTwo !== undefined) return;
 
 		if (playerOne === undefined) {
 			playerOne = player;
-			console.log(`Player one is ${player.name}`);
+			// console.log(`Player one is ${player.name}`);
 		} else {
 			playerTwo = player;
-			console.log(`Player two is ${player.name}`);
+			// console.log(`Player two is ${player.name}`);
 		}
 		currentPlayer = playerOne;
 	};
 	const getCurrentPlayer = () => currentPlayer;
-	const roundOver = function () {
-		roundNum++;
-		currentPlayer = currentPlayer === playerOne ? playerTwo : playerOne;
-		console.log(`Current player is ${currentPlayer.name}`);
-		winCondition(board.board, currentPlayer)
+	const hasGameWon = () => gameWon;
+	const newGame = () => {
+		roundNum = 1;
+		gameWon = false;
+		gameBoard.resetBoard();
+		log.innerHTML = "";
+		roundTracker.textContent = `Round ${roundNum}: ${currentPlayer.name}'s turn`;
 	};
 
-	return { setPlayer, getCurrentPlayer, roundOver };
+	const roundOver = function (colPos, rowPos) {
+		const logText = document.createElement("p");
+		gameWon = winCondition(gameBoard.boardGrid, currentPlayer);
+		roundNum++;
+
+		if (gameWon) {
+			// console.log(`${currentPlayer.name} won the Game!`);
+			logText.textContent = `${currentPlayer.name} won the Game!`;
+		} else if (roundNum === 9) {
+			// console.log(`Draw, out of Moves!`);
+			logText.textContent = `Draw, out of Moves!`;
+		} else {
+			currentPlayer = currentPlayer === playerOne ? playerTwo : playerOne;
+			// console.log(`Current player is ${currentPlayer.name}`);
+			logText.textContent = `${currentPlayer.name} places at Col: ${colPos+1} Row: ${rowPos+1}`;
+		}
+
+		log.appendChild(logText);
+		logText.scrollIntoView();
+		if (gameWon) return;
+		roundTracker.textContent = `Round ${roundNum}: ${currentPlayer.name}'s turn`;
+	};
+	return { setPlayer, getCurrentPlayer, newGame, roundOver, hasGameWon };
 }
 
 function makeBoard() {
-	const boardGrid = [
-		["-", "-", "-"],
-		["-", "-", "-"],
-		["-", "-", "-"],
-	];
+	const boardGrid = ["", "", "", "", "", "", "", "", ""];
+	let index = 0;
+	const rows = document.getElementsByClassName("row");
 
-	for (let [index, element] of boardGrid.entries()) {
-		const boardContainer = document.getElementById("board");
-		let row = document.createElement("div");
-		row.className = "row";
-		boardContainer.appendChild(row);
-		console.log(index);
-		for (let [innerIndex, innerElement] of boardGrid[index].entries()) {
-			let square = document.createElement("div");
-			square.id = `tile_${index}${innerIndex}`;
-			square.className = "tile";
-			square.textContent = "";
-			row.appendChild(square);
-			console.log(innerIndex);
-
-			square.addEventListener("click", function () {
-				let piece = gameManager.getCurrentPlayer().piece
-				boardGrid[index][innerIndex] = piece;
-				square.textContent = piece;
-				console.log(boardGrid);
-				gameManager.roundOver();
-				winCondition(board.board, gameManager.getCurrentPlayer())
-			});
+	const resetBoard = () => {
+		index = 0;
+		for (let i = 0; i < boardGrid.length; i++) {
+			boardGrid[i] = "";
 		}
-	}
-	return { boardGrid };
+		for (let row = 0; row < rows.length; row++) {
+			rows[row].innerHTML = "";
+			rows[row].id = "row" + row;
+
+			for (let col = 0; col < 3; col++) {
+				let square = document.createElement("div");
+				square.id = `tile_${index}`;
+				square.className = "tile";
+				square.textContent = "";
+				rows[row].appendChild(square);
+				const privateIndex = index;
+				index++;
+				square.addEventListener("click", function () {
+					if (gameManager.hasGameWon() === true) return;
+					let piece = gameManager.getCurrentPlayer().piece;
+					boardGrid[privateIndex] = piece;
+					square.textContent = piece;
+					console.log(boardGrid);
+					gameManager.roundOver(row, col);
+				});
+			}
+		}
+	};
+	resetBoard();
+	return { boardGrid, resetBoard };
 }
 
-function winCondition(board, player) {
-	
+function winCondition(board) {
+	let gameWon = false;
+	const winConditions = [
+		[0, 1, 2],
+		[3, 4, 5],
+		[6, 7, 8],
+		[0, 3, 6],
+		[1, 4, 7],
+		[2, 5, 8],
+		[0, 4, 8],
+		[2, 4, 6],
+	];
+	for (let i = 0; i < winConditions.length; i++) {
+		const condition = winConditions[i];
+		const cellA = board[condition[0]];
+		const cellB = board[condition[1]];
+		const cellC = board[condition[2]];
+		if (cellA == "") continue;
+		if (cellA === cellB && cellB === cellC) {
+			gameWon = true;
+			break;
+		}
+	}
+	return gameWon;
 }
 
 function makePlayer(name, piece) {
@@ -72,28 +124,30 @@ function makePlayer(name, piece) {
 
 	const placePiece = function (posX, posY) {
 		let location = gameBoard.board[posX][posY];
-		console.log(`${playerName} places ${playerPiece} at ${posX},${posY}`);
+		// console.log(`${playerName} places ${playerPiece} at ${posX},${posY}`);
 	};
 
 	if (gameMaster.playerOne === null) gameMaster.playerOne = this;
 	else return { name, piece, placePiece };
 }
 
-// function initialise() 
-	let gameBoard = makeBoard();
-	console.log(gameBoard);
+function initialise() {
+	const player1 = makePlayer("X", "X");
+	gameManager.setPlayer(player1);
 
-	const gameManager = gameMaster();
-	const joe = makePlayer("joe", "X");
-	const maggy = makePlayer("maggy", "O");
-	gameManager.setPlayer(joe);
-	gameManager.setPlayer(maggy);
+	const player2 = makePlayer("O", "O");
+	gameManager.setPlayer(player2);
 
-	console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
+	newGameButton.textContent = "Reset Game";
+	gameManager.newGame();
+}
 
-	console.log({ joe });
+let gameBoard = makeBoard();
+const gameManager = gameMaster();
 
-	console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
+const newGameButton = document.getElementById("new-game");
+newGameButton.addEventListener("click", initialise);
 
-//
-// initialise();
+initialise();
+
+// console.log(`Current player is ${gameManager.getCurrentPlayer().name}`);
